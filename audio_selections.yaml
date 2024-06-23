@@ -1,0 +1,263 @@
+moods:
+  - Adventurous
+  - Angry
+  - Anxious
+  - Awestruck
+  - Calm
+  - Cheerful
+  - Confident
+  - Content
+  - Curious
+  - Depressed
+  - Determined
+  - Disappointed
+  - Disgusted
+  - Dreamy
+  - Ecstatic
+  - Energetic
+  - Envious
+  - Excited
+  - Fearful
+  - Frustrated
+  - Gloomy
+  - Grateful
+  - Happy
+  - Hopeful
+  - Humorous
+  - Inspired
+  - Joyful
+  - Lonely
+  - Melancholic
+  - Mellow
+  - Mysterious
+  - Nostalgic
+  - Peaceful
+  - Playful
+  - Proud
+  - Reflective
+  - Relaxed
+  - Romantic
+  - Sad
+  - Satisfied
+  - Scared
+  - Sentimental
+  - Silly
+  - Surprised
+  - Sympathetic
+  - Tense
+  - Thoughtful
+  - Worried
+  - Wistful
+genres:
+  - Alternative
+  - Ambient
+  - Bluegrass
+  - Blues
+  - Classical
+  - Country
+  - Dance
+  - Disco
+  - Downtempo
+  - Drum and Bass
+  - Dubstep
+  - EDM
+  - Electro Swing
+  - Electronic
+  - Emo
+  - Folk
+  - Funk
+  - Gospel
+  - Grunge
+  - Hardcore
+  - Hip-hop
+  - House
+  - Indie
+  - Industrial
+  - Jazz
+  - K-pop
+  - Latin
+  - Metal
+  - New Age
+  - Opera
+  - Pop
+  - Punk
+  - R&B
+  - Rap
+  - Reggae
+  - Rock
+  - Salsa
+  - Ska
+  - Soul
+  - Synthwave
+  - Techno
+  - Trance
+  - Trap
+  - Trip-hop
+  - Tropical
+  - Vaporwave
+  - World Music
+  - Zydeco
+instruments:
+  - Accordion
+  - Bagpipes
+  - Banjo
+  - Bass
+  - Cello
+  - Clarinet
+  - Drums
+  - Flute
+  - French horn
+  - Guitar
+  - Harmonica
+  - Harp
+  - Mandolin
+  - Marimba
+  - Oboe
+  - Organ
+  - Piano
+  - Saxophone
+  - Sitar
+  - Synthesizer
+  - Tambourine
+  - Trombone
+  - Trumpet
+  - Tuba
+  - Violin
+styles:
+  - Acoustic
+  - Ambient
+  - Band
+  - Choral
+  - Choir
+  - Classical
+  - Electric
+  - Experimental
+  - Folk
+  - Fusion
+  - Improvisational
+  - Instrumental
+  - Jazz
+  - Live
+  - Orchestral
+  - Progressive
+  - Psychedelic
+  - Punk
+  - Reggae
+  - Rock
+  - Solo
+  - Studio
+  - Symphonic
+  - Traditional
+  - Vocal
+composers:
+  - Adele
+  - Aretha Franklin
+  - Bach
+  - Beethoven
+  - Beyonce
+  - Bob Dylan
+  - Bob Marley
+  - Brahms
+  - Britney Spears
+  - Bruno Mars
+  - Chopin
+  - David Bowie
+  - Debussy
+  - Drake
+  - Duke Ellington
+  - Ed Sheeran
+  - Elvis Presley
+  - Elton John
+  - Frank Sinatra
+  - Freddie Mercury
+  - George Gershwin
+  - Handel
+  - J.S. Bach
+  - James Brown
+  - Janis Joplin
+  - Jay-Z
+  - Jimi Hendrix
+  - John Lennon
+  - Johnny Cash
+  - Kanye West
+  - Katy Perry
+  - Lady Gaga
+  - Led Zeppelin
+  - Leonard Cohen
+  - Louis Armstrong
+  - Madonna
+  - Michael Jackson
+  - Miles Davis
+  - Mozart
+  - Nina Simone
+  - Paul McCartney
+  - Prince
+  - Rihanna
+  - Schubert
+  - Stevie Wonder
+  - Taylor Swift
+  - Tchaikovsky
+  - Vivaldi
+  - Whitney Houston
+decades:
+  - 1920s
+  - 1930s
+  - 1940s
+  - 1950s
+  - 1960s
+  - 1970s
+  - 1980s
+  - 1990s
+  - 2000s
+  - 2010s
+settings:
+  - Abandoned factory
+  - Alien planet
+  - Ancient Egypt
+  - Ancient Rome
+  - Arctic
+  - Arctic research station
+  - Asylum
+  - Atlantis
+  - Bioluminescent cave
+  - City of the future
+  - Cyberpunk
+  - Dark forest
+  - Desert
+  - Deserted island
+  - Dreamland
+  - Dystopian city
+  - Enchanted castle
+  - Enchanted forest
+  - Fairy tale village
+  - Fantasy
+  - Floating islands
+  - Futuristic
+  - Galactic empire
+  - Gothic mansion
+  - Haunted house
+  - High-tech lab
+  - Jungle
+  - Lost civilization
+  - Magic kingdom
+  - Medieval
+  - Moon base
+  - Mysterious temple
+  - Pirate ship
+  - Post-apocalyptic
+  - Renaissance
+  - Robot city
+  - Sacred grove
+  - Sci-fi metropolis
+  - Space
+  - Steampunk
+  - Subterranean city
+  - Underwater
+  - Underworld
+  - Urban
+  - Victorian era
+  - Viking village
+  - Virtual reality world
+  - Wild West
+  - Zombie apocalypse
+

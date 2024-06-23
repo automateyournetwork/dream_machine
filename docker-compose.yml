@@ -1,0 +1,45 @@
+version: '3.6'
+
+networks:
+  ollama:
+
+services:
+  ollama:
+    image: ollama/ollama
+    networks:
+      - ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    volumes:
+      - ./data/ollama:/root/.ollama
+      - ./start-ollama.sh:/start-ollama.sh
+    ports:
+      - 11434:11434
+    entrypoint: ["/usr/bin/bash", "/start-ollama.sh"]
+  dream_machine:
+    image: johncapobianco/dream_machine:dream_machine
+    container_name: dream_machine
+    restart: always
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+    build: 
+      context: ./
+      dockerfile: ./Dockerfile   
+    ports:
+      - "8501:8501"     
+    depends_on:
+      - ollama
+    networks:
+      - ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]

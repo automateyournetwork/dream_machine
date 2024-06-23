@@ -1,0 +1,7 @@
+diffusers
+stable_audio_tools
+moviepy
+opencv-python-headless
+flash-attn
+streamlit
+pyyaml
