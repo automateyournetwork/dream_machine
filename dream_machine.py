@@ -15,6 +15,7 @@ from stable_audio_tools.inference.generation import generate_diffusion_cond
 from einops import rearrange
 from moviepy.editor import VideoFileClip, AudioFileClip
 from huggingface_hub import login
+from PIL import Image, ImageOps  
 
 # Ensure required keys are initialized
 if 'hf_key' not in st.session_state:
@@ -95,11 +96,11 @@ def page1():
 # Page 2: Input image prompt
 def page2():
     st.title("Dream Machine - Bring Your Dreams to Life")
-    st.title("Step 2: Enter Image Prompt")
+    st.title("Step 2: Enter Image Prompt or Upload Your Image")
 
     prompt_option = st.radio(
         "Choose how to generate the image prompt:",
-        ('Enter manually', 'Use dropdown menus')
+        ('Enter manually', 'Use dropdown menus', 'Upload your image')
     )
 
     selections = load_selections('image_selections.yaml')  # Load from YAML file
@@ -107,8 +108,12 @@ def page2():
         selections[key].insert(0, "")
         selections[key].insert(1, "RANDOM")
 
+    uploaded_image = None
     if prompt_option == 'Enter manually':
         image_prompt = st.text_area("Image Prompt", height=200)
+    elif prompt_option == 'Upload your image':
+        uploaded_image = st.file_uploader("Upload an image", type=['png', 'jpg', 'jpeg'])
+        image_prompt = "User uploaded image"
     else:
         # Create two columns
         col1, col2 = st.columns(2)
@@ -211,12 +216,13 @@ def page2():
         st.text_area("Generated Image Prompt", image_prompt, height=200)
 
     if st.button("Next", key="next_page2"):
-        if image_prompt:
+        if uploaded_image or image_prompt:
+            st.session_state['uploaded_image'] = uploaded_image
             st.session_state['image_prompt'] = image_prompt
             st.session_state['page'] = 3
             st.experimental_rerun()
         else:
-            st.error("Please enter a valid image prompt.")
+            st.error("Please enter a valid image prompt or upload an image.")
 
 # Page 3: Input music prompt and generate animation
 def page3():
@@ -319,39 +325,50 @@ def page3():
         else:
             st.error("Please enter a valid music prompt.")
 
+# Generate the animation considering the uploaded image
 def generate_animation():
     image_prompt = st.session_state['image_prompt']
     music_prompt = st.session_state['music_prompt']
+    uploaded_image = st.session_state.get('uploaded_image')
 
-    # Creating the pipeline, huggingface's wrapper for easy model loading and inference
-    sd3m_pipe = StableDiffusion3Pipeline.from_pretrained(
-        "stabilityai/stable-diffusion-3-medium-diffusers",
-        torch_dtype=torch.float16)
+    if uploaded_image:
+        image = Image.open(uploaded_image)
+        image = ImageOps.exif_transpose(image)  # Ensure image is correctly oriented
+        image = image.convert("RGB")  # Convert image to RGB format
+        image.save("uploaded_image.png")
+        sd3m_image = Image.open("uploaded_image.png")
+    else:
+        # Creating the pipeline, huggingface's wrapper for easy model loading and inference
+        sd3m_pipe = StableDiffusion3Pipeline.from_pretrained(
+            "stabilityai/stable-diffusion-3-medium-diffusers",
+            torch_dtype=torch.float16
+        )
 
-    # We're using a GPU here so setting the device to enable cuda support
-    sd3m_pipe = sd3m_pipe.to("cuda")
+        # We're using a GPU here so setting the device to enable cuda support
+        sd3m_pipe = sd3m_pipe.to("cuda")
 
-    # Enabling CPU offloading
-    sd3m_pipe.enable_model_cpu_offload()
+        # Enabling CPU offloading
+        sd3m_pipe.enable_model_cpu_offload()
 
-    # Generate the image
-    sd3m_image = sd3m_pipe(
-        prompt=image_prompt,
-        negative_prompt="",
-        num_inference_steps=50,
-        height=576,
-        width=1024,
-        guidance_scale=7.0,
-    ).images[0]
+        # Generate the image
+        sd3m_image = sd3m_pipe(
+            prompt=image_prompt,
+            negative_prompt="",
+            num_inference_steps=50,
+            height=576,
+            width=1024,
+            guidance_scale=7.0,
+        ).images[0]
 
-    # Save the image
-    sd3m_image.save("sd3m_image.png")
+        # Save the image
+        sd3m_image.save("sd3m_image.png")
 
     # Creating the Stable Video Diffusion pipeline and loading the model
     svd_pipe = StableVideoDiffusionPipeline.from_pretrained(
         "stabilityai/stable-video-diffusion-img2vid-xt",
         torch_dtype=torch.float16,
-        variant="fp16")
+        variant="fp16"
+    )
 
     # Enabling cuda support
     svd_pipe = svd_pipe.to("cuda")
@@ -365,6 +382,8 @@ def generate_animation():
     # Generating the frames
     frames = svd_pipe(sd3m_image,
                       decode_chunk_size=8,
+                      motion_bucket_id=180,
+                      noise_aug_strength=0.25,
                       generator=svd_generator).frames[0]
 
     # Save video
@@ -426,9 +445,12 @@ def generate_animation():
     st.session_state['final_video'] = filename
 
     # Cleanup: Remove intermediate files
-    os.remove("sd3m_image.png")
+    if not uploaded_image:
+        os.remove("sd3m_image.png")
     os.remove("sao_output.wav")
     os.remove("diffusion_video.mp4")
+    if uploaded_image:
+        os.remove("uploaded_image.png")
 
 # Page 4: Display final animation with music
 def page4():
