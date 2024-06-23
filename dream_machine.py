@@ -6,6 +6,7 @@ import random
 import requests
 import torchaudio
 import streamlit as st
+import moviepy.editor as mp
 from datetime import datetime
 from diffusers import StableDiffusion3Pipeline, StableVideoDiffusionPipeline
 from diffusers.utils import export_to_video
@@ -28,13 +29,13 @@ if 'page' not in st.session_state:
     st.session_state['page'] = 1
 
 # Define the function to send requests to the models
-def send_request(model, prompt):
-    url = f"http://ollama:11434/api/generate"
+def send_request(prompt):
+    url = f"http://localhost:11434/api/generate"
     headers = {
         "Content-Type": "application/json"
     }
     data = {
-        "model": model,
+        "model": "llama3",
         "prompt": f"Generate only the prompt with the following details: {prompt}. Do not include anything additional only the prompt.",
         "stream": False,
         "keep_alive": 0
@@ -54,6 +55,25 @@ def load_selections(file_path):
     else:
         raise ValueError("Unsupported file format. Use JSON or YAML.")
     return selections
+
+def generate_filename(image_prompt, music_prompt):
+    url = f"http://localhost:11434/api/generate"
+    headers = {
+        "Content-Type": "application/json"
+    }
+    prompt = f"Generate a suitable filename for the animation video using the following details: {image_prompt} and {music_prompt}. Do not include anything additional, only the filename."
+    data = {
+        "model": "llama3",
+        "prompt": prompt,
+        "stream": False,
+        "keep_alive": 0
+    }
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response.raise_for_status()
+        return response.json().get('response', '')
+    except requests.exceptions.RequestException as e:
+        return f"Error: {e}"
 
 # Set up the Streamlit app
 st.set_page_config(page_title="AI Animation Generator", layout="wide")
@@ -183,7 +203,7 @@ def page2():
                 keywords.append(f"with a {style} style")
 
             keywords_prompt = "using the following keywords can you create a prompt that will generate a single image: " + ", ".join(keywords) if keywords else "a general scene"
-            image_prompt = send_request("llama3", keywords_prompt)
+            image_prompt = send_request(keywords_prompt)
             st.session_state['generated_image_prompt'] = image_prompt
         else:
             image_prompt = st.session_state.get('generated_image_prompt', '')
@@ -282,7 +302,7 @@ def page3():
                 keywords.append(f"set in a {setting}")
 
             keywords_prompt = "using the following keywords can you create a prompt that will generate a music track: " + ", ".join(keywords) if keywords else "a general track"
-            music_prompt = send_request("llama3", keywords_prompt)
+            music_prompt = send_request(keywords_prompt)
             st.session_state['generated_music_prompt'] = music_prompt
         else:
             music_prompt = st.session_state.get('generated_music_prompt', '')
@@ -292,113 +312,123 @@ def page3():
     if st.button("Next", key="next_page3"):
         if music_prompt:
             st.session_state['music_prompt'] = music_prompt
-            generate_animation()
+            with st.spinner("Downloading models and generating your animation... please be patient this may take a while"):
+                generate_animation()
             st.session_state['page'] = 4
             st.experimental_rerun()
         else:
             st.error("Please enter a valid music prompt.")
 
 def generate_animation():
-        image_prompt = st.session_state['image_prompt']
-        music_prompt = st.session_state['music_prompt']
+    image_prompt = st.session_state['image_prompt']
+    music_prompt = st.session_state['music_prompt']
 
-        # Creating the pipeline, huggingface's wrapper for easy model loading and inference
-        sd3m_pipe = StableDiffusion3Pipeline.from_pretrained(
-            "stabilityai/stable-diffusion-3-medium-diffusers",
-            torch_dtype=torch.float16)
+    # Creating the pipeline, huggingface's wrapper for easy model loading and inference
+    sd3m_pipe = StableDiffusion3Pipeline.from_pretrained(
+        "stabilityai/stable-diffusion-3-medium-diffusers",
+        torch_dtype=torch.float16)
 
-        # We're using a GPU here so setting the device to enable cuda support
-        sd3m_pipe = sd3m_pipe.to("cuda")
+    # We're using a GPU here so setting the device to enable cuda support
+    sd3m_pipe = sd3m_pipe.to("cuda")
 
-        # Enabling CPU offloading
-        # Model offloading will only move a model component onto the GPU when it needs to be executed, while keeping the remaining components on the CPU.
-        sd3m_pipe.enable_model_cpu_offload()
+    # Enabling CPU offloading
+    sd3m_pipe.enable_model_cpu_offload()
 
-        # Generate the image
-        sd3m_image = sd3m_pipe(
-            prompt=image_prompt,
-            negative_prompt="", # The prompt or prompts not to guide the image generation
-            num_inference_steps=50, # The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense of slower inference.
-            height=576,
-            width=1024,
-            guidance_scale=7.0, # Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality.
-        ).images[0]
+    # Generate the image
+    sd3m_image = sd3m_pipe(
+        prompt=image_prompt,
+        negative_prompt="",
+        num_inference_steps=50,
+        height=576,
+        width=1024,
+        guidance_scale=7.0,
+    ).images[0]
 
-        # Save the image
-        sd3m_image.save("sd3m_image.png")
+    # Save the image
+    sd3m_image.save("sd3m_image.png")
 
-        # Creating the Stable Video Diffusion pipeline and loading the model
-        svd_pipe = StableVideoDiffusionPipeline.from_pretrained(
-            "stabilityai/stable-video-diffusion-img2vid-xt",
-            torch_dtype=torch.float16,
-            variant="fp16")
+    # Creating the Stable Video Diffusion pipeline and loading the model
+    svd_pipe = StableVideoDiffusionPipeline.from_pretrained(
+        "stabilityai/stable-video-diffusion-img2vid-xt",
+        torch_dtype=torch.float16,
+        variant="fp16")
 
-        # Enabling cuda support since we're using a GPU
-        svd_pipe = svd_pipe.to("cuda")
+    # Enabling cuda support
+    svd_pipe = svd_pipe.to("cuda")
 
-        # Enabling CPU model offloading
-        svd_pipe.enable_model_cpu_offload()
+    # Enabling CPU model offloading
+    svd_pipe.enable_model_cpu_offload()
 
-        # Setting a seed
-        svd_generator = torch.manual_seed(42)
+    # Setting a seed
+    svd_generator = torch.manual_seed(42)
 
-        # Generating the frames
-        frames = svd_pipe(sd3m_image,
-                          decode_chunk_size=8,
-                          generator=svd_generator).frames[0]
+    # Generating the frames
+    frames = svd_pipe(sd3m_image,
+                      decode_chunk_size=8,
+                      generator=svd_generator).frames[0]
 
-        # Save video
-        export_to_video(frames, "diffusion_video.mp4", fps=7)
+    # Save video
+    export_to_video(frames, "diffusion_video.mp4", fps=7)
 
-        # Loading the model using stable-audio-tools and grabbing configuration specs
-        sao_model, sao_model_config = get_pretrained_model("stabilityai/stable-audio-open-1.0")
-        sample_rate = sao_model_config["sample_rate"]
-        sample_size = sao_model_config["sample_size"]
+    # Loading the model using stable-audio-tools and grabbing configuration specs
+    sao_model, sao_model_config = get_pretrained_model("stabilityai/stable-audio-open-1.0")
+    sample_rate = sao_model_config["sample_rate"]
+    sample_size = sao_model_config["sample_size"]
 
-        # Setting model to cuda support
-        device = "cuda"
-        sao_model = sao_model.to(device)
+    # Setting model to cuda support
+    device = "cuda"
+    sao_model = sao_model.to(device)
 
-        # Setting 'conditioning' aka the prompt and time
-        sao_conditioning = [{
-            "prompt": music_prompt,
-            "seconds_start": 0,
-            "seconds_total": 7
-        }]
+    # Setting 'conditioning' aka the prompt and time
+    sao_conditioning = [{
+        "prompt": music_prompt,
+        "seconds_start": 0,
+        "seconds_total": 20  # Extending the audio duration to 20 seconds
+    }]
 
-        # Generate stereo audio
-        sao_output = generate_diffusion_cond(
-            sao_model,                       # The model used for generating the audio. This is typically a pre-trained diffusion model.
-            steps=100,                       # The number of steps for the diffusion process. Higher steps generally improve quality but increase computation time.
-            cfg_scale=7,                     # The classifier-free guidance scale. A higher value can enhance the details but may also introduce artifacts.
-            conditioning=sao_conditioning,   # The conditioning variable that guides the generation process, defined above.
-            sample_size=sample_size,         # The size of the generated audio sample. This defines the length and resolution of the output.
-            sigma_min=0.3,                   # The minimum value of the noise scale. Lower values can help in fine details.
-            sigma_max=500,                   # The maximum value of the noise scale. Higher values can help in capturing the overall structure.
-            sampler_type="dpmpp-3m-sde",     # The type of sampler used. Different samplers can affect the speed and quality of the generation.
-            device=device                    # The device on which the computation is performed (e.g., 'cpu' or 'cuda' for GPU).
-        )
+    # Generate stereo audio
+    sao_output = generate_diffusion_cond(
+        sao_model,
+        steps=100,
+        cfg_scale=7,
+        conditioning=sao_conditioning,
+        sample_size=sample_size,
+        sigma_min=0.3,
+        sigma_max=500,
+        sampler_type="dpmpp-3m-sde",
+        device=device
+    )
 
+    # Reshape the tensor to combine batches into a single continuous stream per channel
+    output = rearrange(sao_output, "b d n -> d (b n)")
 
-        # Reshape the tensor to combine batches into a single continuous stream per channel, converting to stereo audio format.
-        # Effectively concatenates the audio samples from all batches into a single continuous stream per channel for stereo audio so an audio library can play it.
-        output = rearrange(sao_output, "b d n -> d (b n)")
+    # Post processing
+    output = output.to(torch.float32).div(torch.max(torch.abs(output))).clamp(-1, 1).mul(32767).to(torch.int16).cpu()
+    torchaudio.save("sao_output.wav", output, sample_rate)
 
-        # Post processing, peak normalize, clip, convert to int16, and save to file
-        output = output.to(torch.float32).div(torch.max(torch.abs(output))).clamp(-1, 1).mul(32767).to(torch.int16).cpu()
-        torchaudio.save("sao_output.wav", output, sample_rate)
+    # Using Moviepy to combine the video with the audio
+    video = VideoFileClip("diffusion_video.mp4")
+    audio = AudioFileClip("sao_output.wav").subclip(0, 20)
 
-        # Using Moviepy to combine the video with the audio
-        video = VideoFileClip("diffusion_video.mp4")
-        audio = AudioFileClip("sao_output.wav").subclip(0, 4)
-        final_video = video.set_audio(audio)
-        final_video.write_videofile("final_video.mp4", codec="libx264", audio_codec="aac")
-        st.session_state['final_video'] = "final_video.mp4"
+    # Loop the video to make it 20 seconds long
+    looped_video = mp.concatenate_videoclips([video] * (20 // int(video.duration)))
 
-            # Cleanup: Remove intermediate files
-        os.remove("sd3m_image.png")
-        os.remove("sao_output.wav")
-        os.remove("diffusion_video.mp4")
+    final_video = looped_video.set_audio(audio)
+    filename = generate_filename(image_prompt, music_prompt)
+    if "Error" in filename:
+        filename = "default_filename"
+
+    # Ensure filename is clean and does not contain problematic characters
+    filename = f"{filename.strip()}.mp4"
+
+    # Use the generated filename in your video file
+    final_video.write_videofile(filename, codec="libx264", audio_codec="aac")
+    st.session_state['final_video'] = filename
+
+    # Cleanup: Remove intermediate files
+    os.remove("sd3m_image.png")
+    os.remove("sao_output.wav")
+    os.remove("diffusion_video.mp4")
 
 # Page 4: Display final animation with music
 def page4():
@@ -407,17 +437,33 @@ def page4():
         st.video(st.session_state['final_video'])
         st.write(f"**Image Prompt:** {st.session_state['image_prompt']}")
         st.write(f"**Music Prompt:** {st.session_state['music_prompt']}")
-        st.download_button(
+
+        video_file = st.session_state['final_video']
+
+        download_button_clicked = st.download_button(
             label="Download Video",
-            data=open(st.session_state['final_video'], "rb").read(),
-            file_name="final_video.mp4",
+            data=open(video_file, "rb").read(),
+            file_name=os.path.basename(video_file),
             mime="video/mp4"
         )
+
+        if download_button_clicked:
+            # Delete the video file after the download button is clicked
+            delete_video_file(video_file)
+            st.session_state.pop('final_video', None)
+
         if st.button("Generate Another Animation", key="start_over"):
-            os.remove("final_video.mp4")
+            delete_video_file(video_file)
             st.session_state['page'] = 2
     else:
         st.write("No video generated yet. Please go back and generate the video.")
+
+# Function to delete the video file
+def delete_video_file(filepath):
+    try:
+        os.remove(filepath)
+    except OSError as e:
+        st.error(f"Error: {e.strerror}")
 
 # Navigation logic
 if 'page' not in st.session_state:
