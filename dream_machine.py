@@ -36,7 +36,7 @@ def send_request(prompt):
         "Content-Type": "application/json"
     }
     data = {
-        "model": "gemma2",
+        "model": "llama3",
         "prompt": f"Generate only the prompt with the following details: {prompt}. Do not include anything additional only the prompt.",
         "stream": False,
         "keep_alive": 0
@@ -64,7 +64,7 @@ def generate_filename(image_prompt, music_prompt):
     }
     prompt = f"Generate a suitable filename for the animation video using the following details: {image_prompt} and {music_prompt}. Do not include anything additional, only the filename."
     data = {
-        "model": "gemma2",
+        "model": "llama3",
         "prompt": prompt,
         "stream": False,
         "keep_alive": 0
